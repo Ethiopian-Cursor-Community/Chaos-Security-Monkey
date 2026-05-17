@@ -1,0 +1,32 @@
+{
+  "name": "chaos-security-monkey",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "target": "npm start --prefix target-app",
+    "monkey": "tsx --env-file=.env monkey.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ethiopian-Cursor-Community/Chaos-Security-Monkey.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Ethiopian-Cursor-Community/Chaos-Security-Monkey/issues"
+  },
+  "homepage": "https://github.com/Ethiopian-Cursor-Community/Chaos-Security-Monkey#readme",
+  "dependencies": {
+    "@cursor/sdk": "^1.0.13"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.1",
+    "typescript": "^6.0.3"
+  }
+}

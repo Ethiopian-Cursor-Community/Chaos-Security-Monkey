@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    // Environment Settings
+    "module": "nodenext",
+    "moduleResolution": "nodenext", // Ensure TypeScript resolves packages using modern Node logic
+    "target": "ES2022",
+    "lib": ["ES2022"],              // Explicitly load standard modern JS global features
+    "types": ["node"],              // CRITICAL: Tells TS to look for Node.js built-ins
+
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recommended Options
+    "strict": true,
+    "jsx": "react-jsx",
+    "verbatimModuleSyntax": true,   
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    
+    "skipLibCheck": true
+  }
+}
