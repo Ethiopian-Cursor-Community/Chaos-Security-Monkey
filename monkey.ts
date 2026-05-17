@@ -13,10 +13,12 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const TARGET_DIR = path.join(ROOT, 'target-app');
 const SERVER_FILE_PATH = path.join(TARGET_DIR, 'server.js');
 const PORT = Number(process.env.PORT) || 5000;
-const BASE_URL = `http://localhost:${PORT}`;
+const BASE_URL = `http://127.0.0.1:${PORT}`;
 const HEALTH_URL = `${BASE_URL}/health`;
-const STARTUP_TIMEOUT_MS = 30_000;
+const STARTUP_TIMEOUT_MS = Number(process.env.STARTUP_TIMEOUT_MS) || 30_000;
 const POLL_INTERVAL_MS = 500;
+/** On Render, keep target-app running after the agent pipeline so health checks do not restart the service. */
+const KEEP_ALIVE_AFTER_RUN = process.env.MONKEY_KEEP_ALIVE === 'true' || Boolean(process.env.RENDER);
 
 let targetProcess: ChildProcess | undefined;
 
@@ -115,6 +117,10 @@ async function runMonkey(): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     console.error('❌ [Orchestrator Fault Summary]:', message);
   } finally {
+    if (KEEP_ALIVE_AFTER_RUN && targetProcess && !targetProcess.killed) {
+      console.log('\n✅ [Orchestrator] Agent pipeline finished. Keeping target-app alive for Render health checks.');
+      return;
+    }
     console.log('\n🛑 [Orchestrator] Shutdown routine active. Killing sandboxed server instances...');
     shutdown();
     process.exit(0);

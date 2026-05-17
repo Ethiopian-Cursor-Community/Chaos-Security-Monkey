@@ -1,0 +1,19 @@
+# Deploy from repo root (full orchestrator + target-app sandbox).
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: chaos-security-monkey
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: CURSOR_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STARTUP_TIMEOUT_MS
+        value: "90000"
