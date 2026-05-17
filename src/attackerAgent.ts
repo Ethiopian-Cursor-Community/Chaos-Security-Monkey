@@ -76,7 +76,7 @@ ${targetSourceCode}
       });
 
       // Extract JSON content from response if wrapped in markdown
-      const responseText = response.text || '';
+      const responseText = response.result || '';
       const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || [null, responseText];
       const jsonString = jsonMatch[1] || responseText;
       const content = JSON.parse(jsonString.trim());

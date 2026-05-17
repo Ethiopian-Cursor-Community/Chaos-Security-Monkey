@@ -1,16 +1,17 @@
-import { spawn, exec, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
 import * as dotenv from 'dotenv';
 import { AttackerAgent } from './src/attackerAgent.js';
 import { RemediationAgent } from './src/remediationAgent.js';
 import { getCursorApiKey } from './src/cursorConfig.js';
-import fs from 'node:fs';
 
 dotenv.config();
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const TARGET_DIR = path.join(ROOT, 'target-app');
+const SERVER_FILE_PATH = path.join(TARGET_DIR, 'server.js');
 const PORT = Number(process.env.PORT) || 5000;
 const BASE_URL = `http://localhost:${PORT}`;
 const HEALTH_URL = `${BASE_URL}/health`;
@@ -78,43 +79,49 @@ function shutdown(): void {
   }
 }
 
-async function main(): Promise<void> {
+async function runMonkey(): Promise<void> {
+  console.log('🐵 [Orchestrator] Initialization Sequence Triggered.');
+
   process.on('SIGINT', () => {
     shutdown();
     process.exit(0);
   });
   process.on('SIGTERM', shutdown);
 
-  targetProcess = startTargetApp();
-  await waitForHealth();
-
-  log('Sandbox is up. API base: ' + BASE_URL);
-
-  const apiKey = getCursorApiKey();
-
   try {
-    const targetJsPath = path.join(TARGET_DIR, 'server.js');
-    const targetSourceCode = fs.readFileSync(targetJsPath, 'utf-8');
+    getCursorApiKey();
 
-    // Phase 1: Trigger the Attacker Agent
-    console.log("\n🚀 Phase 1: Launching Cyber Threat Simulation...");
+    console.log(`[Orchestrator] Loading source file from target app path: ${SERVER_FILE_PATH}`);
+    const initialSourceCode = await fs.readFile(SERVER_FILE_PATH, 'utf-8');
+
+    targetProcess = startTargetApp();
+    await waitForHealth();
+
     const attacker = new AttackerAgent(BASE_URL, TARGET_DIR);
-    const attackReport = await attacker.runAttackLoop(targetSourceCode);
+    const remediator = new RemediationAgent(TARGET_DIR);
 
-    // Phase 2: Feed the attacker results directly to the Remediation Agent
-    console.log("\n🚀 Phase 2: Launching Self-Healing Remediation Loop...");
-    const remediator = new RemediationAgent(apiKey);
-    await remediator.formulateAndApplyPatch(targetJsPath, JSON.stringify(attackReport));
+    console.log('\n🔥 [Orchestrator] Phase 1: Initializing Attacker Cyber Threat Simulation Loop...');
+    const attackReport = await attacker.runAttackLoop(initialSourceCode);
 
-    console.log("\n🎉 Operation Chaos Security Monkey finished flawlessly!");
-  } catch (error: any) {
-    console.error("An error occurred during execution loop:", error);
+    if (attackReport.exploitProofStatus === 'SUCCESS') {
+      console.log('\n🛠️ [Orchestrator] Phase 2: Exploit Confirmed. Triggering Remediation Subagent...');
+
+      const technicalStateCode = await fs.readFile(SERVER_FILE_PATH, 'utf-8');
+      await remediator.runRemediationLoop(attackReport, technicalStateCode);
+    } else {
+      console.log('\n🛡️ [Orchestrator] Attacker agent failed to bypass endpoint verification rules. System secure.');
+    }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('❌ [Orchestrator Fault Summary]:', message);
   } finally {
+    console.log('\n🛑 [Orchestrator] Shutdown routine active. Killing sandboxed server instances...');
     shutdown();
+    process.exit(0);
   }
 }
 
-main().catch((err: unknown) => {
+runMonkey().catch((err: unknown) => {
   const message = err instanceof Error ? err.message : String(err);
   console.error(`[orchestrator] Fatal: ${message}`);
   shutdown();
