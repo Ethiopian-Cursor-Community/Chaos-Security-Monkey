@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import * as dotenv from 'dotenv';
 import { AttackerAgent } from './src/attackerAgent.js';
 import { RemediationAgent } from './src/remediationAgent.js';
+import { getCursorApiKey } from './src/cursorConfig.js';
 import fs from 'node:fs';
 
 dotenv.config();
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
 
   log('Sandbox is up. API base: ' + BASE_URL);
 
-  const apiKey = process.env.CURSOR_API_KEY || 'crsr_1606d9fc86ee6b9393e1f13da35945fd35bc8b4e4a5302b999c06bccab946498';
+  const apiKey = getCursorApiKey();
 
   try {
     const targetJsPath = path.join(TARGET_DIR, 'server.js');

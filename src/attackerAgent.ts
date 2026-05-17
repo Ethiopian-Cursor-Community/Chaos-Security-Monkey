@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import { Agent } from '@cursor/sdk';
+import { getCursorApiKey } from './cursorConfig.js';
 
 const execAsync = promisify(exec);
 
@@ -23,7 +24,7 @@ export class AttackerAgent {
   constructor(targetUrl: string = 'http://localhost:5000', targetAppDir: string = './target-app') {
     this.targetUrl = targetUrl;
     this.targetAppDir = targetAppDir;
-    this.apiKey = process.env.CURSOR_API_KEY || 'crsr_1606d9fc86ee6b9393e1f13da35945fd35bc8b4e4a5302b999c06bccab946498';
+    this.apiKey = getCursorApiKey();
   }
 
   /**
