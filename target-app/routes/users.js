@@ -5,19 +5,32 @@ const { getDb } = require('../db/init');
 
 const router = express.Router();
 
-// VULNERABLE: classic SQL injection via string concatenation (fix with parameterized queries).
 router.get('/search', (req, res) => {
-  const q = String(req.query.q ?? '');
-  if (!q) {
+  const raw = String(req.query.q ?? '').trim();
+  if (!raw) {
     res.status(400).json({ error: 'Query parameter "q" is required' });
     return;
   }
 
+  const MAX_Q_LEN = 128;
+  if (raw.length > MAX_Q_LEN) {
+    res.status(400).json({
+      error: `"q" must be at most ${MAX_Q_LEN} characters`,
+    });
+    return;
+  }
+
+  if (raw.includes('\0')) {
+    res.status(400).json({ error: 'Invalid query parameter "q"' });
+    return;
+  }
+
   const db = getDb();
-  const sql = `SELECT id, username, email, role FROM users WHERE username LIKE '%${q}%'`;
+  const sql =
+    `SELECT id, username, email, role FROM users WHERE username LIKE '%' || ? || '%'`;
 
   try {
-    const users = db.prepare(sql).all();
+    const users = db.prepare(sql).all(raw);
     res.json({ count: users.length, users });
   } catch (err) {
     res.status(500).json({
