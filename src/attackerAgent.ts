@@ -75,7 +75,7 @@ ${targetSourceCode}
         model: { id: 'composer-latest' }
       });
 
-      // Extract JSON content from response if wrapped in markdown
+      // Extract JSON content from assistant response
       const responseText = response.result || '';
       const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || [null, responseText];
       const jsonString = jsonMatch[1] || responseText;

@@ -11,3 +11,7 @@ yarn-error.log*
 .vscode/
 .idea/
 *.log
+*.db
+*.db-shm
+*.db-wal
+exploit-test.js

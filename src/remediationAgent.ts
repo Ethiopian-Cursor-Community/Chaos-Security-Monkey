@@ -50,7 +50,7 @@ You are a Principal DevSecOps and Secure Coding Architect. Your mandate is to ev
 Pinpoint the vulnerable code block reported by the attacker inside 'server.js', refactor it securely using modern security programming best practices, and output the updated codebase.
 
 # CONTEXT & BOUNDARIES
-- Active Source File: './target-app/server.js'
+- Active Source File: '${path.join(this.targetAppDir, 'server.js')}'
 - Do NOT change the API endpoint URL or alter the core functionality of the application. Only rewrite the insecure logic layers.
 - Ensure that the vulnerability (e.g., raw SQL string interpolation) is entirely swapped for safe alternatives (like parameterized inputs, strict input validation, or sanitization patterns).
 
@@ -77,7 +77,7 @@ ${targetSourceCode}
         model: { id: 'composer-latest' }
       }) as any;
 
-      const responseText = response.text ?? response.outputText ?? response.output ?? '';
+      const responseText = response.result || '';
       const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) ?? [null, responseText];
       const jsonString = jsonMatch[1] || responseText;
       const content = JSON.parse(jsonString.trim());
@@ -145,7 +145,7 @@ app.listen(5000, () => console.log('Target app running on port 5000'));
       return { output: fullOutput, verified: blocked };
     } catch (error: any) {
       // If the process crashes or exits with code 1 because the endpoint returned 401/500, that usually implies a successful blocking action!
-      return { output: error.message || 'Script rejected execution execution block', verified: true };
+      return { output: error.message || 'Script rejected execution block', verified: true };
     }
   }
 
