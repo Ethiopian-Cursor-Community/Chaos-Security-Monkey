@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
+import { Agent } from '@cursor/sdk';
 
 const execAsync = promisify(exec);
 
@@ -22,11 +23,11 @@ export class AttackerAgent {
   constructor(targetUrl: string = 'http://localhost:5000', targetAppDir: string = './target-app') {
     this.targetUrl = targetUrl;
     this.targetAppDir = targetAppDir;
-    this.apiKey = process.env.CURSOR_API_KEY || process.env.OPENAI_API_KEY || '';
+    this.apiKey = process.env.CURSOR_API_KEY || 'crsr_1606d9fc86ee6b9393e1f13da35945fd35bc8b4e4a5302b999c06bccab946498';
   }
 
   /**
-   * Protocol Step 1 & 2: Audit server.js code and generate the standalone exploit-test.js code.
+   * Protocol Step 1 & 2: Audit server.js code and generate the standalone exploit-test.js code using Cursor SDK.
    */
   public async analyzeAndGenerateExploitScript(targetSourceCode: string): Promise<{
     exploitCode: string;
@@ -35,9 +36,9 @@ export class AttackerAgent {
     vulnLine: string;
     payloadUsed: string;
   }> {
-    console.log(`[AttackerAgent] Auditing ./target-app/server.js for security vulnerabilities...`);
+    console.log(`[AttackerAgent] Auditing ./target-app/server.js for security vulnerabilities via Cursor SDK...`);
 
-    const systemPrompt = `# ROLE
+    const fullPrompt = `# ROLE
 You are an expert offensive security engineer and penetration tester specializing in white-box source code auditing.
 
 # OBJECTIVE
@@ -53,45 +54,31 @@ Analyze the target codebase, identify severe security vulnerabilities, write a d
 2. Programmatically write a standalone Node.js file named 'exploit-test.js' inside the './target-app/' directory.
 3. The 'exploit-test.js' script must use the native 'fetch' API to send a crafted malicious payload targeting the security flaw you discovered on ${this.targetUrl}.
 
-Output strictly in JSON format matching this schema:
+Output strictly in JSON format matching this schema inside a markdown json block or raw json:
 {
   "vulnerabilityType": "e.g., SQL Injection",
   "targetEndpoint": "e.g., POST /api/login",
   "vulnerableLineOfCode": "Exact line from server.js that is vulnerable",
   "exploitPayloadUsed": "The exact input string or structure that broke the logic",
   "exploitScriptCode": "The complete, standalone Node.js code for exploit-test.js using native fetch to execute the attack and console.log the JSON result or raw response."
-}`;
+}
 
-    const userPrompt = `Target Source Code (server.js):\n\`\`\`javascript\n${targetSourceCode}\n\`\`\``;
+Target Source Code (server.js):
+\`\`\`javascript
+${targetSourceCode}
+\`\`\``;
 
     try {
-      if (!this.apiKey) {
-        throw new Error("No API key configured");
-      }
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.2
-        })
+      const response = await Agent.prompt(fullPrompt, {
+        apiKey: this.apiKey,
+        model: { id: 'composer-latest' }
       });
 
-      if (!response.ok) {
-        throw new Error(`AI API request failed with status ${response.status}`);
-      }
-
-      const data: any = await response.json();
-      const content = JSON.parse(data.choices[0].message.content);
+      // Extract JSON content from response if wrapped in markdown
+      const responseText = response.text || '';
+      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || [null, responseText];
+      const jsonString = jsonMatch[1] || responseText;
+      const content = JSON.parse(jsonString.trim());
 
       return {
         exploitCode: content.exploitScriptCode,
