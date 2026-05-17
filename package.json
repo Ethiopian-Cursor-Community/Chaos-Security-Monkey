@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "npm --prefix target-app install",
     "start": "tsx monkey.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
