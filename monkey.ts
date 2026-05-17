@@ -1,10 +1,16 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, exec, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as dotenv from 'dotenv';
+import { AttackerAgent } from './src/attackerAgent.js';
+import { RemediationAgent } from './src/remediationAgent.js';
+import fs from 'node:fs';
+
+dotenv.config();
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const TARGET_DIR = path.join(ROOT, 'target-app');
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 5000;
 const BASE_URL = `http://localhost:${PORT}`;
 const HEALTH_URL = `${BASE_URL}/health`;
 const STARTUP_TIMEOUT_MS = 30_000;
@@ -52,11 +58,8 @@ async function waitForHealth(): Promise<void> {
     try {
       const res = await fetch(HEALTH_URL);
       if (res.ok) {
-        const body = (await res.json()) as { status?: string };
-        if (body.status === 'ok') {
-          log(`Target ready at ${BASE_URL}`);
-          return;
-        }
+        log(`Target ready at ${BASE_URL}`);
+        return;
       }
     } catch {
       // Server not up yet
@@ -84,13 +87,30 @@ async function main(): Promise<void> {
   targetProcess = startTargetApp();
   await waitForHealth();
 
-  log('Sandbox is up. Hand off to attack/remediation agents next.');
-  log(`API base: ${BASE_URL}`);
-  log('Press Ctrl+C to stop.');
+  log('Sandbox is up. API base: ' + BASE_URL);
 
-  await new Promise<void>((resolve) => {
-    targetProcess?.on('exit', () => resolve());
-  });
+  const apiKey = process.env.CURSOR_API_KEY || 'crsr_1606d9fc86ee6b9393e1f13da35945fd35bc8b4e4a5302b999c06bccab946498';
+
+  try {
+    const targetJsPath = path.join(TARGET_DIR, 'server.js');
+    const targetSourceCode = fs.readFileSync(targetJsPath, 'utf-8');
+
+    // Phase 1: Trigger the Attacker Agent
+    console.log("\n🚀 Phase 1: Launching Cyber Threat Simulation...");
+    const attacker = new AttackerAgent(BASE_URL, TARGET_DIR);
+    const attackReport = await attacker.runAttackLoop(targetSourceCode);
+
+    // Phase 2: Feed the attacker results directly to the Remediation Agent
+    console.log("\n🚀 Phase 2: Launching Self-Healing Remediation Loop...");
+    const remediator = new RemediationAgent(apiKey);
+    await remediator.formulateAndApplyPatch(targetJsPath, JSON.stringify(attackReport));
+
+    console.log("\n🎉 Operation Chaos Security Monkey finished flawlessly!");
+  } catch (error: any) {
+    console.error("An error occurred during execution loop:", error);
+  } finally {
+    shutdown();
+  }
 }
 
 main().catch((err: unknown) => {
